@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package rarticle;
+
+option go_package = "rarticlepb";
+
+service RArticle {
+    rpc getRArticle(RArticleRequest) returns (RArticleResponse) {};
+}
+
+message RArticleRequest {
+    string name = 1;
+    string lang = 2;
+}
+
+message RArticleResponse {
+    string content = 1;
+}

@@ -6,6 +6,7 @@ option go_package = "rarticlepb";
 
 service RArticle {
     rpc getRArticle(RArticleRequest) returns (RArticleResponse) {};
+    rpc searchRArticle(SearchRequest) returns (stream SearchResponse) {};
 }
 
 message RArticleRequest {
@@ -15,4 +16,13 @@ message RArticleRequest {
 
 message RArticleResponse {
     string content = 1;
+}
+
+message SearchRequest {
+    string word = 1;
+    string lang = 2;
+}
+
+message SearchResponse {
+    string link = 1;
 }

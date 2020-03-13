@@ -5,10 +5,15 @@ import (
 	pb "github.com/ronaldoafonso/rarticle/rarticlepb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+	"io"
 	"log"
 	"net"
 	"testing"
 )
+
+func init() {
+	initGRPCServer()
+}
 
 func initGRPCServer() {
 	lis, err := net.Listen("tcp", ":80")
@@ -26,7 +31,6 @@ func initGRPCServer() {
 }
 
 func TestServerGetRArticle(t *testing.T) {
-	initGRPCServer()
 	conn, err := grpc.Dial("localhost:80", grpc.WithInsecure())
 	if err != nil {
 		t.Fatalf("GRPC error. Did not connect: %v.", err)
@@ -68,6 +72,51 @@ func TestServerGetRArticle(t *testing.T) {
 		got := res.GetContent()
 		if got != test.want {
 			t.Errorf("GetRArticle error. Want: %v, got: %v.", test.want, got)
+		}
+	}
+}
+
+func TestServerSearchRArticle(t *testing.T) {
+	conn, err := grpc.Dial("localhost:80", grpc.WithInsecure())
+	if err != nil {
+		t.Fatalf("GRPC error. Did not connect: %v.", err)
+	}
+	defer conn.Close()
+
+	tests := []struct {
+		word string
+		lang string
+		want []string
+	}{
+		{"zero", "en", []string{"zero"}},
+		{"zero", "br", []string{"zero"}},
+		{"word", "en", []string{"word1", "word2", "word3"}},
+		{"palavra", "br", []string{"palavra1", "palavra2", "palavra3"}},
+		{"noword", "en", []string{}},
+		{"sempalavra", "br", []string{}},
+	}
+
+	for _, test := range tests {
+		grpcClient := pb.NewRArticleClient(conn)
+		req := pb.SearchRequest{
+			Word: test.word,
+			Lang: test.lang,
+		}
+		if stream, err := grpcClient.SearchRArticle(context.Background(), &req); err != nil {
+			t.Errorf("SearchRArticle error: %v.", err)
+		} else {
+			for i, want := range test.want {
+				if res, err := stream.Recv(); err != nil {
+					if err == io.EOF && i != (len(test.want)-1) {
+						t.Errorf("SearchRArticle error: %v.", err)
+					}
+				} else {
+					link := res.GetLink()
+					if want != link {
+						t.Errorf("SearchRArticle error. Want: %v, got %v.", want, link)
+					}
+				}
+			}
 		}
 	}
 }
